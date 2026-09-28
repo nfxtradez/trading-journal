@@ -9,6 +9,7 @@ import { EquityChart } from "@/components/Charts";
 import { getSettings, listTrades } from "@/lib/trades";
 import { dailyStats, equityCurve, summarize } from "@/lib/stats";
 import { dateTime, money, pct, pnlColor } from "@/lib/format";
+import { ready } from "@/lib/session";
 
 const QUICK = [
   { href: "/journal", label: "Journal", icon: BookOpen },
@@ -16,7 +17,8 @@ const QUICK = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  await ready();
   const trades = listTrades();
   const { startingBalance } = getSettings();
   const s = summarize(trades);

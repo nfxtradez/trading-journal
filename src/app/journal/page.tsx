@@ -8,6 +8,7 @@ import { listSymbols, listTags, listTrades, type SortKey } from "@/lib/trades";
 import { filtersFromSearchParams } from "@/lib/filters";
 import { summarize } from "@/lib/stats";
 import { dateTime, duration, money, pct, pnlColor, price } from "@/lib/format";
+import { ready } from "@/lib/session";
 
 const COLUMNS: { key: SortKey | null; label: string; align?: "right" }[] = [
   { key: "entry_time", label: "Date" },
@@ -22,6 +23,7 @@ const COLUMNS: { key: SortKey | null; label: string; align?: "right" }[] = [
 ];
 
 export default async function JournalPage({ searchParams }: PageProps<"/journal">) {
+  await ready();
   const sp = await searchParams;
   const filters = filtersFromSearchParams(sp);
   const trades = listTrades(filters);

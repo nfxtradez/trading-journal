@@ -15,8 +15,35 @@ npm run dev          # http://localhost:3000
 
 For day-to-day use, `npm run build && npm start` is faster than dev mode.
 
-Data is stored in `data/journal.db` and screenshots in `data/uploads/` (both git-ignored).
+Locally, data is stored in `data/journal.db` and screenshots in `data/uploads/` (both git-ignored).
 Back up the `data/` folder to keep your journal. Set `JOURNAL_DATA_DIR=/some/path` to store it elsewhere.
+
+## Deploy to Netlify
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/nfxtradez/trading-journal)
+
+1. In Netlify: **Add new project → Import an existing project → GitHub →** `nfxtradez/trading-journal`
+   (pick the branch that has this code). The build settings come from `netlify.toml`.
+2. **Site configuration → Environment variables →** add `APP_PASSWORD` (the password for the login screen).
+   Without it the site is open to anyone with the URL.
+3. **Deploys → Trigger deploy.** Your URL is shown at the top of the site overview (`https://<name>.netlify.app`).
+
+How it works on Netlify: there's no persistent disk, so Netlify builds automatically switch to
+**Netlify Blobs** — the SQLite database is stored as one blob (loaded on each request, saved after each change)
+and each screenshot as its own blob. Nothing else to provision. Use **Settings → Download backup** to keep a copy;
+the downloaded `.db` file can be dropped into `data/journal.db` to use locally.
+
+Your local journal and the Netlify one are separate. To move local trades online, re-import your TradingView CSVs
+on the live site.
+
+## Install as an app (PWA)
+
+- **iPhone / iPad (Safari):** Share → **Add to Home Screen**.
+- **Android (Chrome):** menu ⋮ → **Install app** / **Add to Home screen**.
+- **Desktop (Chrome / Edge):** click the install icon at the right of the address bar.
+
+Installing needs HTTPS, which Netlify provides. The app opens full screen with its own icon, has shortcuts to
+Log trade / Journal / Calendar, and shows an offline page when there's no connection.
 
 ## Features
 
@@ -65,14 +92,21 @@ src/
     analytics/ calendar/ settings/
     api/uploads/[file]/      Serves screenshots from data/uploads
     actions.ts               Server actions (create/update/delete trade, import, tags, settings)
+    login/                   Password screen (active when APP_PASSWORD is set)
+    manifest.ts              PWA manifest
+  proxy.ts                   Redirects signed-out visitors to /login
   components/                UI (TradeForm, PnlCalendar, Charts, Sidebar, …)
   lib/
-    schema.sql               Database schema
-    db.ts                    SQLite connection + migrations + default tags
+    schema.ts                Database schema (SQL)
+    db.ts                    SQLite connection, local file or Netlify Blobs, default tags
+    uploads.ts               Screenshot storage (local disk or Netlify Blobs)
+    auth.ts / session.ts     Password session cookie + per-request guard
     trades.ts                Queries
     stats.ts                 Win rate, profit factor, equity curve, grouping (pure)
     tradingview.ts           CSV parser (pure — used for preview and import)
     instruments.ts           Futures point values + symbol normalization
+public/                      PWA icons, service worker, offline page
+scripts/                     Icon sources + generator
 samples/                     Example TradingView exports
 ```
 

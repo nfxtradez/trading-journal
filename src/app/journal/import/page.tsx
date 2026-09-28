@@ -1,8 +1,10 @@
 import ImportPanel from "@/components/ImportPanel";
 import PageHeader from "@/components/PageHeader";
 import { listTags } from "@/lib/trades";
+import { ready } from "@/lib/session";
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  await ready();
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader

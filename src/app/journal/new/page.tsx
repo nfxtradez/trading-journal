@@ -3,8 +3,10 @@ import TradeForm from "@/components/TradeForm";
 import PageHeader from "@/components/PageHeader";
 import { createTrade } from "@/app/actions";
 import { listTags } from "@/lib/trades";
+import { ready } from "@/lib/session";
 
 export default async function NewTradePage({ searchParams }: PageProps<"/journal/new">) {
+  await ready();
   const { saved } = await searchParams;
   return (
     <div className="mx-auto max-w-6xl">

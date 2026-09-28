@@ -1,0 +1,16 @@
+# Netlify detects Next.js and applies its Next.js runtime automatically.
+# Data lives in Netlify Blobs on Netlify builds (see src/lib/db.ts) — no database to set up.
+# Required: set APP_PASSWORD under Site configuration → Environment variables, then redeploy.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"

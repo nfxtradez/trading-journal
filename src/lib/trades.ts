@@ -53,19 +53,19 @@ export function listTrades(f: TradeFilters = {}): TradeWithTags[] {
   const dir = f.dir === "asc" ? "ASC" : "DESC";
   const sql = `SELECT t.* FROM trades t ${where.length ? "WHERE " + where.join(" AND ") : ""}
     ORDER BY t.${sort} ${dir} NULLS LAST, t.id ${dir}`;
-  const trades = db.prepare(sql).all(params) as Trade[];
+  const trades = db().prepare(sql).all(params) as Trade[];
   return attachRelations(trades);
 }
 
 function attachRelations(trades: Trade[]): TradeWithTags[] {
   if (trades.length === 0) return [];
-  const tagRows = db
+  const tagRows = db()
     .prepare(
       `SELECT tt.trade_id, g.id, g.name, g.category FROM trade_tags tt
        JOIN tags g ON g.id = tt.tag_id ORDER BY g.category, g.name`,
     )
     .all() as (Tag & { trade_id: number })[];
-  const shotRows = db.prepare("SELECT id, trade_id, filename FROM screenshots ORDER BY id").all() as {
+  const shotRows = db().prepare("SELECT id, trade_id, filename FROM screenshots ORDER BY id").all() as {
     id: number;
     trade_id: number;
     filename: string;
@@ -82,12 +82,12 @@ function attachRelations(trades: Trade[]): TradeWithTags[] {
 }
 
 export function getTrade(id: number): TradeWithTags | null {
-  const t = db.prepare("SELECT * FROM trades WHERE id = ?").get(id) as Trade | undefined;
+  const t = db().prepare("SELECT * FROM trades WHERE id = ?").get(id) as Trade | undefined;
   return t ? attachRelations([t])[0] : null;
 }
 
 export function listSymbols(): string[] {
-  return (db.prepare("SELECT DISTINCT symbol FROM trades ORDER BY symbol").all() as { symbol: string }[]).map(
+  return (db().prepare("SELECT DISTINCT symbol FROM trades ORDER BY symbol").all() as { symbol: string }[]).map(
     (r) => r.symbol,
   );
 }
@@ -95,7 +95,7 @@ export function listSymbols(): string[] {
 export function insertTrade(input: TradeInput): number {
   const cols = TRADE_COLUMNS.join(", ");
   const vals = TRADE_COLUMNS.map((c) => "@" + c).join(", ");
-  const res = db.prepare(`INSERT INTO trades (${cols}) VALUES (${vals})`).run(input);
+  const res = db().prepare(`INSERT INTO trades (${cols}) VALUES (${vals})`).run(input);
   return Number(res.lastInsertRowid);
 }
 
@@ -103,51 +103,51 @@ export function insertTrade(input: TradeInput): number {
 export function insertTradeIfNew(input: TradeInput): number | null {
   const cols = TRADE_COLUMNS.join(", ");
   const vals = TRADE_COLUMNS.map((c) => "@" + c).join(", ");
-  const res = db.prepare(`INSERT OR IGNORE INTO trades (${cols}) VALUES (${vals})`).run(input);
+  const res = db().prepare(`INSERT OR IGNORE INTO trades (${cols}) VALUES (${vals})`).run(input);
   return res.changes ? Number(res.lastInsertRowid) : null;
 }
 
 export function updateTrade(id: number, input: Omit<TradeInput, "source" | "external_id" | "raw_symbol">) {
   const editable = TRADE_COLUMNS.filter((c) => !["source", "external_id", "raw_symbol"].includes(c));
   const set = editable.map((c) => `${c} = @${c}`).join(", ");
-  db.prepare(`UPDATE trades SET ${set}, updated_at = datetime('now') WHERE id = @id`).run({ ...input, id });
+  db().prepare(`UPDATE trades SET ${set}, updated_at = datetime('now') WHERE id = @id`).run({ ...input, id });
 }
 
 export function deleteTrade(id: number): string[] {
-  const files = (db.prepare("SELECT filename FROM screenshots WHERE trade_id = ?").all(id) as { filename: string }[]).map(
+  const files = (db().prepare("SELECT filename FROM screenshots WHERE trade_id = ?").all(id) as { filename: string }[]).map(
     (r) => r.filename,
   );
-  db.prepare("DELETE FROM trades WHERE id = ?").run(id);
+  db().prepare("DELETE FROM trades WHERE id = ?").run(id);
   return files;
 }
 
 export function setTradeTags(tradeId: number, tagIds: number[]) {
-  db.transaction(() => {
-    db.prepare("DELETE FROM trade_tags WHERE trade_id = ?").run(tradeId);
-    const ins = db.prepare("INSERT OR IGNORE INTO trade_tags (trade_id, tag_id) VALUES (?, ?)");
+  db().transaction(() => {
+    db().prepare("DELETE FROM trade_tags WHERE trade_id = ?").run(tradeId);
+    const ins = db().prepare("INSERT OR IGNORE INTO trade_tags (trade_id, tag_id) VALUES (?, ?)");
     for (const tagId of tagIds) ins.run(tradeId, tagId);
   })();
 }
 
 export function addScreenshot(tradeId: number, filename: string) {
-  db.prepare("INSERT INTO screenshots (trade_id, filename) VALUES (?, ?)").run(tradeId, filename);
+  db().prepare("INSERT INTO screenshots (trade_id, filename) VALUES (?, ?)").run(tradeId, filename);
 }
 
 export function removeScreenshot(id: number): string | null {
-  const row = db.prepare("SELECT filename FROM screenshots WHERE id = ?").get(id) as { filename: string } | undefined;
+  const row = db().prepare("SELECT filename FROM screenshots WHERE id = ?").get(id) as { filename: string } | undefined;
   if (!row) return null;
-  db.prepare("DELETE FROM screenshots WHERE id = ?").run(id);
+  db().prepare("DELETE FROM screenshots WHERE id = ?").run(id);
   return row.filename;
 }
 
 // ---- tags ----
 
 export function listTags(): Tag[] {
-  return db.prepare("SELECT id, name, category FROM tags ORDER BY category, name COLLATE NOCASE").all() as Tag[];
+  return db().prepare("SELECT id, name, category FROM tags ORDER BY category, name COLLATE NOCASE").all() as Tag[];
 }
 
 export function tagUsage(): Map<number, number> {
-  const rows = db.prepare("SELECT tag_id, COUNT(*) AS n FROM trade_tags GROUP BY tag_id").all() as {
+  const rows = db().prepare("SELECT tag_id, COUNT(*) AS n FROM trade_tags GROUP BY tag_id").all() as {
     tag_id: number;
     n: number;
   }[];
@@ -155,16 +155,16 @@ export function tagUsage(): Map<number, number> {
 }
 
 export function ensureTag(name: string, category: TagCategory): number {
-  db.prepare("INSERT OR IGNORE INTO tags (name, category) VALUES (?, ?)").run(name, category);
-  return (db.prepare("SELECT id FROM tags WHERE name = ? AND category = ?").get(name, category) as { id: number }).id;
+  db().prepare("INSERT OR IGNORE INTO tags (name, category) VALUES (?, ?)").run(name, category);
+  return (db().prepare("SELECT id FROM tags WHERE name = ? AND category = ?").get(name, category) as { id: number }).id;
 }
 
 export function deleteTag(id: number) {
-  db.prepare("DELETE FROM tags WHERE id = ?").run(id);
+  db().prepare("DELETE FROM tags WHERE id = ?").run(id);
 }
 
 export function renameTag(id: number, name: string) {
-  db.prepare("UPDATE tags SET name = ? WHERE id = ?").run(name, id);
+  db().prepare("UPDATE tags SET name = ? WHERE id = ?").run(name, id);
 }
 
 // ---- settings ----
@@ -174,7 +174,7 @@ export interface Settings {
 }
 
 export function getSettings(): Settings {
-  const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
+  const rows = db().prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
   const m = new Map(rows.map((r) => [r.key, r.value]));
   return {
     startingBalance: Number(m.get("startingBalance") ?? 50000),
@@ -182,7 +182,7 @@ export function getSettings(): Settings {
 }
 
 export function saveSetting(key: keyof Settings, value: string) {
-  db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(
+  db().prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(
     key,
     value,
   );
