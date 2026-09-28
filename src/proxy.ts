@@ -14,6 +14,6 @@ export async function proxy(req: NextRequest) {
 export const config = {
   // Everything except the login page and the assets needed to install the app / render the login page.
   matcher: [
-    "/((?!login|_next/static|_next/image|manifest.webmanifest|sw.js|offline.html|icon|apple-icon|favicon).*)",
+    "/((?!login|api/webhooks|_next/static|_next/image|manifest.webmanifest|sw.js|offline.html|icon|apple-icon|favicon).*)",
   ],
 };

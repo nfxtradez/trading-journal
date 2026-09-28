@@ -46,6 +46,25 @@ CREATE TABLE IF NOT EXISTS screenshots (
   created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Incoming automation signals (TradingView webhooks / test signals) and what happened to them.
+CREATE TABLE IF NOT EXISTS signals (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  received_at  TEXT    NOT NULL DEFAULT (datetime('now')), -- UTC
+  source       TEXT    NOT NULL,             -- tradingview | test
+  mode         TEXT    NOT NULL,             -- demo | live
+  symbol       TEXT,
+  action       TEXT,                         -- buy | sell | flatten | target
+  quantity     REAL,
+  contract     TEXT,                         -- resolved contract, e.g. NQZ6
+  status       TEXT    NOT NULL,             -- ignored | rejected | submitted | error
+  reason       TEXT,
+  order_ids    TEXT,
+  payload      TEXT,                         -- raw alert body with the secret removed
+  fingerprint  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_signals_received ON signals (received_at);
+
 CREATE TABLE IF NOT EXISTS settings (
   key    TEXT PRIMARY KEY,
   value  TEXT NOT NULL
