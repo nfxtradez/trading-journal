@@ -4,8 +4,10 @@ import { DailyPnlChart } from "@/components/Charts";
 import { listTrades } from "@/lib/trades";
 import { dailyStats } from "@/lib/stats";
 import { money, pct, pnlColor } from "@/lib/format";
+import { ready } from "@/lib/session";
 
-export default function CalendarPage() {
+export default async function CalendarPage() {
+  await ready();
   const trades = listTrades();
   const dayMap = dailyStats(trades);
   const days = [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));

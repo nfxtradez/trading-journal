@@ -1,10 +1,11 @@
 "use server";
 
-import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db, uploadPath } from "@/lib/db";
+import { db, saveDb } from "@/lib/db";
+import { ready } from "@/lib/session";
+import { deleteUpload, saveUpload } from "@/lib/uploads";
 import { computePnl, rootSymbol } from "@/lib/instruments";
 import * as repo from "@/lib/trades";
 import { parseTradingViewCsv, num } from "@/lib/tradingview";
@@ -25,6 +26,16 @@ const IMAGE_EXT: Record<string, string> = {
 function str(fd: FormData, key: string): string {
   const v = fd.get(key);
   return typeof v === "string" ? v.trim() : "";
+}
+
+/** Save the database; returns an error message instead of throwing so forms can show it. */
+async function persist(): Promise<string | null> {
+  try {
+    await saveDb();
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : "Could not save your journal.";
+  }
 }
 
 function revalidateAll() {
@@ -96,49 +107,57 @@ async function saveScreenshots(fd: FormData, tradeId: number): Promise<string | 
     if (!ext) return `"${file.name}" is not a supported image (PNG, JPG, GIF, WebP).`;
     if (file.size > 10 * 1024 * 1024) return `"${file.name}" is larger than 10MB.`;
     const filename = `${crypto.randomUUID()}${ext}`;
-    await fs.writeFile(uploadPath(filename), Buffer.from(await file.arrayBuffer()));
+    await saveUpload(filename, await file.arrayBuffer());
     repo.addScreenshot(tradeId, filename);
   }
   return null;
 }
 
 export async function createTrade(_prev: FormState, fd: FormData): Promise<FormState> {
+  await ready();
   const { fieldErrors, trade } = parseTradeForm(fd);
   if (Object.keys(fieldErrors).length) return { error: "Please fix the highlighted fields.", fieldErrors };
 
-  const id = db.transaction(() => {
+  const id = db().transaction(() => {
     const newId = repo.insertTrade({ ...trade, source: "manual", external_id: null });
     repo.setTradeTags(newId, collectTagIds(fd));
     return newId;
   })();
   const shotError = await saveScreenshots(fd, id);
+  const saveError = await persist();
+  if (saveError) return { error: saveError };
   revalidateAll();
   if (shotError) return { error: `Trade saved, but a screenshot failed: ${shotError}` };
   redirect(str(fd, "after") === "new" ? "/journal/new?saved=1" : `/journal/${id}`);
 }
 
 export async function updateTrade(id: number, _prev: FormState, fd: FormData): Promise<FormState> {
+  await ready();
   if (!repo.getTrade(id)) return { error: "Trade not found." };
   const { fieldErrors, trade } = parseTradeForm(fd);
   if (Object.keys(fieldErrors).length) return { error: "Please fix the highlighted fields.", fieldErrors };
 
-  db.transaction(() => {
+  db().transaction(() => {
     repo.updateTrade(id, trade);
     repo.setTradeTags(id, collectTagIds(fd));
   })();
   for (const shotId of fd.getAll("remove_screenshot").map(Number)) {
     const file = repo.removeScreenshot(shotId);
-    if (file) await fs.rm(uploadPath(file), { force: true });
+    if (file) await deleteUpload(file);
   }
   const shotError = await saveScreenshots(fd, id);
+  const saveError = await persist();
+  if (saveError) return { error: saveError };
   revalidateAll();
   if (shotError) return { error: `Trade saved, but a screenshot failed: ${shotError}` };
   redirect(`/journal/${id}`);
 }
 
 export async function deleteTrade(id: number) {
+  await ready();
   const files = repo.deleteTrade(id);
-  await Promise.all(files.map((f) => fs.rm(uploadPath(f), { force: true })));
+  await saveDb();
+  await Promise.all(files.map((f) => deleteUpload(f)));
   revalidateAll();
   redirect("/journal");
 }
@@ -153,12 +172,13 @@ export interface ImportResult {
 }
 
 export async function importTradingView(csvText: string, tagIds: number[] = []): Promise<ImportResult> {
+  await ready();
   const result = parseTradingViewCsv(csvText);
   if (result.format === "unknown" || result.trades.length === 0) {
     return { imported: 0, duplicates: 0, warnings: result.warnings, error: result.warnings[0] ?? "No trades found in file." };
   }
   let imported = 0;
-  db.transaction(() => {
+  db().transaction(() => {
     for (const t of result.trades) {
       const id = repo.insertTradeIfNew({
         ...t,
@@ -174,6 +194,8 @@ export async function importTradingView(csvText: string, tagIds: number[] = []):
       }
     }
   })();
+  const saveError = await persist();
+  if (saveError) return { imported: 0, duplicates: 0, warnings: [], error: saveError };
   revalidateAll();
   return { imported, duplicates: result.trades.length - imported, warnings: result.warnings };
 }
@@ -181,22 +203,29 @@ export async function importTradingView(csvText: string, tagIds: number[] = []):
 // ---- settings & tags ----
 
 export async function saveSettings(_prev: FormState, fd: FormData): Promise<FormState> {
+  await ready();
   const bal = num(str(fd, "startingBalance"));
   if (bal === null || bal < 0) return { fieldErrors: { startingBalance: "Enter a valid balance" } };
   repo.saveSetting("startingBalance", String(bal));
+  const saveError = await persist();
+  if (saveError) return { error: saveError };
   revalidateAll();
   return {};
 }
 
 export async function createTag(fd: FormData) {
+  await ready();
   const name = str(fd, "name").slice(0, 60);
   const category = str(fd, "category") as TagCategory;
   if (!name || !TAG_CATEGORIES.some((c) => c.key === category)) return;
   repo.ensureTag(name, category);
+  await saveDb();
   revalidateAll();
 }
 
 export async function removeTag(id: number) {
+  await ready();
   repo.deleteTag(id);
+  await saveDb();
   revalidateAll();
 }

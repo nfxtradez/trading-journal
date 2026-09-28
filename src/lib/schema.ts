@@ -1,6 +1,6 @@
--- Trading journal schema (SQLite).
--- Times are stored as local, timezone-naive ISO strings: "YYYY-MM-DDTHH:MM[:SS]".
-
+// Trading journal schema (SQLite). Applied on every connection; all statements are idempotent.
+// Times are stored as local, timezone-naive ISO strings: "YYYY-MM-DDTHH:MM[:SS]".
+export const SCHEMA = /* sql */ `
 CREATE TABLE IF NOT EXISTS trades (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   symbol        TEXT    NOT NULL,             -- root symbol, e.g. NQ, ES, MNQ
@@ -50,3 +50,4 @@ CREATE TABLE IF NOT EXISTS settings (
   key    TEXT PRIMARY KEY,
   value  TEXT NOT NULL
 );
+`;

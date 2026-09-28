@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Netlify has no persistent disk, so Netlify builds store data in Netlify Blobs (see src/lib/db.ts).
+  env: {
+    JOURNAL_STORAGE: process.env.JOURNAL_STORAGE ?? (process.env.NETLIFY === "true" ? "blobs" : "local"),
+  },
   serverExternalPackages: ["better-sqlite3"],
   async headers() {
     return [

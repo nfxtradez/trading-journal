@@ -7,8 +7,10 @@ import { getTrade } from "@/lib/trades";
 import { pointValue } from "@/lib/instruments";
 import { dateTime, duration, money, pnlColor, price } from "@/lib/format";
 import { TAG_CATEGORIES } from "@/lib/types";
+import { ready } from "@/lib/session";
 
 export default async function TradePage({ params }: PageProps<"/journal/[id]">) {
+  await ready();
   const { id } = await params;
   const t = getTrade(Number(id));
   if (!t) notFound();

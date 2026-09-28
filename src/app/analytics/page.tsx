@@ -8,10 +8,12 @@ import { filtersFromSearchParams } from "@/lib/filters";
 import { equityCurve, groupBy, summarize } from "@/lib/stats";
 import { money, pct, pnlColor } from "@/lib/format";
 import { TAG_CATEGORIES } from "@/lib/types";
+import { ready } from "@/lib/session";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default async function AnalyticsPage({ searchParams }: PageProps<"/analytics">) {
+  await ready();
   const filters = filtersFromSearchParams(await searchParams);
   const trades = listTrades({ ...filters, sort: "entry_time", dir: "asc" });
   const s = summarize(trades);

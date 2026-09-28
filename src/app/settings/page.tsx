@@ -1,15 +1,19 @@
 import Link from "next/link";
-import { Plus, Upload, X } from "lucide-react";
+import { Download, LogOut, Plus, Upload, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import SettingsForm from "@/components/SettingsForm";
 import TagChip from "@/components/TagChip";
 import { createTag, removeTag } from "@/app/actions";
 import { getSettings, listTags, tagUsage } from "@/lib/trades";
 import { POINT_VALUES } from "@/lib/instruments";
-import { DATA_DIR } from "@/lib/db";
+import { DATA_DIR, REMOTE } from "@/lib/db";
+import { authEnabled } from "@/lib/auth";
+import { logout } from "@/app/login/actions";
 import { TAG_CATEGORIES } from "@/lib/types";
+import { ready } from "@/lib/session";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await ready();
   const settings = getSettings();
   const tags = listTags();
   const usage = tagUsage();
@@ -80,9 +84,31 @@ export default function SettingsPage() {
             </span>
           ))}
         </div>
-        <p className="mt-5 text-xs text-muted">
-          Data is stored locally in <code className="text-ink-2">{DATA_DIR}</code> (journal.db + uploads/). Back up that folder to keep your journal safe.
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="text-sm font-semibold text-ink-2">Data</h2>
+        <p className="mt-1 mb-4 text-sm text-muted">
+          {REMOTE ? (
+            <>Your journal is stored in Netlify Blobs. Download a backup now and then to keep a copy.</>
+          ) : (
+            <>
+              Stored locally in <code className="text-ink-2">{DATA_DIR}</code> (journal.db + uploads/).
+            </>
+          )}
         </p>
+        <div className="flex flex-wrap gap-2">
+          <a href="/api/backup" className="btn-ghost">
+            <Download className="size-4" /> Download backup (.db)
+          </a>
+          {authEnabled() && (
+            <form action={logout}>
+              <button className="btn-ghost">
+                <LogOut className="size-4" /> Sign out
+              </button>
+            </form>
+          )}
+        </div>
       </section>
     </div>
   );
