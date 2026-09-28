@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, CalendarDays, LayoutDashboard, Plus, Settings, TrendingUp } from "lucide-react";
+import { BarChart3, BookOpen, Bot, CalendarDays, LayoutDashboard, Plus, Settings, TrendingUp } from "lucide-react";
 
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/automation", label: "Auto Trading", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

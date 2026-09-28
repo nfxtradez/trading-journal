@@ -36,6 +36,45 @@ the downloaded `.db` file can be dropped into `data/journal.db` to use locally.
 Your local journal and the Netlify one are separate. To move local trades online, re-import your TradingView CSVs
 on the live site.
 
+## Auto trading (TradingView → Tradovate)
+
+The **Auto Trading** page turns TradingView alerts into orders on your Tradovate account.
+
+> Automated trading can lose money quickly. Everything starts in **demo (paper) mode with auto-trading off**.
+> Run your alerts against the Tradovate demo account until you trust them.
+
+**How it works:** a TradingView alert posts JSON to `https://<your-site>/api/webhooks/tradingview`. The app checks
+the shared secret, runs the risk checks, and sends a market order (optionally with an OCO stop/target bracket)
+through the Tradovate REST API. Every alert is logged with what happened.
+
+**Setup**
+1. Tradovate: enable API access and create an API key (Application Settings → API Access). The API is a paid
+   Tradovate add-on.
+2. Add the environment variables from [`.env.example`](.env.example): `TV_WEBHOOK_SECRET`, `TRADOVATE_USERNAME`,
+   `TRADOVATE_PASSWORD`, `TRADOVATE_CID`, `TRADOVATE_SECRET` (and `APP_PASSWORD` on Netlify). Keys live only in
+   environment variables, never in the code or the journal database. Redeploy after adding them.
+3. Auto Trading page → **Test connection**, then set your risk limits and turn auto-trading on.
+4. Send a **test signal** and confirm the order in your Tradovate demo account.
+5. TradingView (webhooks need a paid plan): create an alert → Notifications → **Webhook URL** = the URL shown on
+   the page, and paste one of the message templates, replacing `YOUR_TV_WEBHOOK_SECRET`.
+
+**Alert messages**
+- *Strategy alerts* (recommended): send `market_position` + `market_position_size`. The app moves your Tradovate
+  position to match the strategy (it handles entries, exits and reversals, and ignores repeats).
+- *Indicator / manual alerts*: `"action": "buy" | "sell" | "exit"` with `"contracts"`.
+- Optional brackets when opening a position: `sl_points` / `tp_points` (relative to `price`) or absolute `sl` / `tp`.
+- Continuous tickers such as `NQ1!` use the front-month contract (rolls on the second Thursday of Mar/Jun/Sep/Dec);
+  set a contract override, e.g. `NQ=NQH7`, to pin one.
+
+**Risk checks (all must pass before an order is sent):** auto-trading on, allowed symbols, max contracts,
+max orders per day (New York date), duplicate alerts within 15 s ignored. **Stop auto-trading** at the top of the
+page is the kill switch; alerts are still logged while it's off.
+
+**Live trading has two locks.** The server must have `TRADOVATE_ALLOW_LIVE=true`, and you must type `LIVE` and tick
+the acknowledgement on the Auto Trading page. The switch also checks that your live account works, then pauses
+auto-trading so you turn it on deliberately. If the variable is removed, live orders are refused even if the app
+is still set to live. Switching back to demo is one click.
+
 ## Install as an app (PWA)
 
 - **iPhone / iPad (Safari):** Share → **Add to Home Screen**.
@@ -93,6 +132,8 @@ src/
     api/uploads/[file]/      Serves screenshots from data/uploads
     actions.ts               Server actions (create/update/delete trade, import, tags, settings)
     login/                   Password screen (active when APP_PASSWORD is set)
+    automation/              Auto Trading page + actions
+    api/webhooks/tradingview TradingView alert webhook
     manifest.ts              PWA manifest
   proxy.ts                   Redirects signed-out visitors to /login
   components/                UI (TradeForm, PnlCalendar, Charts, Sidebar, …)
@@ -105,6 +146,9 @@ src/
     stats.ts                 Win rate, profit factor, equity curve, grouping (pure)
     tradingview.ts           CSV parser (pure — used for preview and import)
     instruments.ts           Futures point values + symbol normalization
+    contracts.ts             Front-month contract resolution
+    tradovate.ts             Tradovate REST client (env-var credentials, token cache)
+    automation.ts            Alert parsing, risk checks, order routing, signal log
 public/                      PWA icons, service worker, offline page
 scripts/                     Icon sources + generator
 samples/                     Example TradingView exports
