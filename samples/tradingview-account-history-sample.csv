@@ -1,0 +1,3 @@
+Time,Balance Before,Balance After,Realized P&L (value),Realized P&L (currency),Action
+2025-06-03 10:41:02,50800.00,50125.00,-675.00,USD,"Close long position for symbol CME_MINI:ES1! at price 5905.75 for 2 units. Position AVG Price was 5912.50, currency: USD, rate: 1.00, point value: 50.00"
+2025-06-03 09:52:30,50000.00,50800.00,800.00,USD,"Close short position for symbol CME_MINI:NQ1! at price 21495.25 for 2 units. Position AVG Price was 21515.25, currency: USD, rate: 1.00, point value: 20.00"

@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0c0f;
+  --color-card: #15171c;
+  --color-card-2: #1c1f26;
+  --color-line: #262a33;
+  --color-ink: #f3f4f6;
+  --color-ink-2: #c9ccd3;
+  --color-muted: #8b919e;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-profit: #22c55e;
+  --color-loss: #ef4444;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+/* Shared component classes (Tailwind v4 custom utilities). */
+@utility input {
+  @apply w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted/70
+    outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25;
+}
+@utility label {
+  @apply mb-1.5 block text-xs font-medium tracking-wide text-muted uppercase;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-accent text-white hover:bg-accent-hover;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-card-2 text-ink-2 hover:border-muted/50 hover:text-ink;
+}
+@utility btn-danger {
+  @apply btn border border-loss/40 bg-loss/10 text-loss hover:bg-loss/20;
+}
+@utility card {
+  @apply min-w-0 rounded-xl border border-line bg-card;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
