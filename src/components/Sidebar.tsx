@@ -51,7 +51,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile bottom bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
